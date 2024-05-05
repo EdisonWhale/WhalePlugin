@@ -79,6 +79,24 @@ class whalePlugin(Plugin):
             e_context.action = EventAction.BREAK_PASS
             return
 
+        # 音乐搜索功能
+        if content.startswith("搜索音乐 "):
+            keyword = content[len("搜索音乐 "):].strip()
+            music_results = music_search(
+                self.alapi_token, keyword)  # 调用music_search函数
+            if music_results:
+                # 构建回复内容
+                reply_content = "\n".join(
+                    [f"歌曲：{song['song_name']}\n歌手：{song['artists']}\n时长：{song['duration']}秒\n链接：{song['url']}\n"
+                     for song in music_results]
+                )
+                reply = create_reply(ReplyType.TEXT, reply_content)
+            else:
+                reply = create_reply(ReplyType.TEXT, "未找到相关音乐或发生错误。")
+            e_context["reply"] = reply
+            e_context.action = EventAction.BREAK_PASS
+            return
+
         # 摸鱼视频功能
         if content == "摸鱼视频":
             moyu_video = get_moyu_calendar_video()

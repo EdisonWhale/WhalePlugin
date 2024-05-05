@@ -511,3 +511,65 @@ def fetch_daily_question():
     else:
         print(f"Failed to fetch daily question: {response.status_code}")
         return None, None
+
+# 网易云音乐搜索
+
+
+def music_search(api_key, keyword):
+    # 第一步：搜索音乐
+    search_url = "https://v2.alapi.cn/api/music/search"
+    search_payload = {"token": api_key, "keyword": keyword}
+    search_headers = {'Content-Type': "application/x-www-form-urlencoded"}
+
+    try:
+        search_response = requests.request(
+            "POST", search_url, data=search_payload, headers=search_headers)
+        search_info = search_response.json()
+
+        if search_info['code'] != 200:  # 如果请求不成功，抛出异常
+            logger.error(f"music_search失败，错误信息：{search_info}")
+            return None
+
+        # 第二步：对每首歌曲获取其URL
+        songs_info = search_info['data']['songs']
+        result = []
+        for song in songs_info:
+            song_id = song['id']
+
+            url_payload = {
+                "id": str(song_id), "format": "json", "token": api_key}
+            url_response = requests.request(
+                "GET", "https://v2.alapi.cn/api/music/url", params=url_payload)
+
+            url_info = url_response.json()
+            if url_info['code'] == 200:
+                song['url'] = url_info['data']['url']  # 将URL添加到歌曲信息中
+            else:
+                continue
+
+            # 获取歌曲名称
+            song_name = song['name']
+            # 获取歌手
+            artists = ", ".join([artist['name'] for artist in song['artists']])
+            # 获取时长，单位为毫秒，转换为秒需要除以1000
+            duration = song['duration'] / 1000
+            # 获取url
+            url = song['url']
+
+            # 保存结果
+            result.append({
+                "song_name": song_name,
+                "artists": artists,
+                "duration": duration,
+                "url": url,
+            })
+
+        if len(result) > 0:
+            return result
+        else:
+            logger.error(f"music_search失败")
+            return None
+
+    except Exception as e:
+        logger.error(f"music_search失败，错误信息：{e}")
+        return None
